@@ -5,6 +5,8 @@ import KeepOrToss from '@/components/KeepOrToss';
 import ArbitrageFeed from '@/components/ArbitrageFeed';
 import RaidBrainDemo from '@/components/RaidBrainDemo';
 import Pricing from '@/components/Pricing';
+import InstagramDiscountModal from '@/components/InstagramDiscountModal';
+import InstagramIcon from '@/components/InstagramIcon';
 import {
   Sparkles,
   Zap,
@@ -19,25 +21,34 @@ import {
   ExternalLink,
   ChevronRight,
   Flame,
+  Gift,
 } from 'lucide-react';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'keep-toss' | 'arbitrage' | 'raidbrain'>('keep-toss');
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#09090b] text-neutral-100">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 border-b border-amber-500/30 text-amber-300 text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2">
+      <div className="bg-gradient-to-r from-amber-500/20 via-rose-500/10 to-amber-500/20 border-b border-amber-500/30 text-amber-300 text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-3">
         <span className="inline-flex items-center gap-1 font-bold">
           <Flame className="w-3.5 h-3.5 text-amber-400" />
           <span>WoW: Forever Er Live!</span>
         </span>
         <span className="hidden sm:inline">•</span>
-        <span className="hidden sm:inline">Keep or Toss™ databasen er opdateret med samtlige 1.000+ nye Classic+ items og quests.</span>
+        <span className="hidden sm:inline">Keep or Toss™ opdateret med samtlige nye Classic+ opskrifter.</span>
+        <button
+          onClick={() => setIsDiscountModalOpen(true)}
+          className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 text-[11px] font-bold transition-colors cursor-pointer"
+        >
+          <InstagramIcon className="w-3 h-3" />
+          <span>Del på Instagram & Spar 25%</span>
+        </button>
       </div>
 
       {/* Navigation Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-neutral-950/80 border-b border-neutral-800/80">
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-neutral-950/80 border-b border-neutral-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 via-amber-600 to-yellow-600 flex items-center justify-center shadow-lg shadow-amber-500/20 text-neutral-950 font-black text-lg">
@@ -84,6 +95,13 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsDiscountModalOpen(true)}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 font-bold text-xs transition-colors"
+            >
+              <InstagramIcon className="w-3.5 h-3.5" />
+              <span>Få 25% Rabat</span>
+            </button>
             <a
               href="#pricing"
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-neutral-950 font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-amber-500/20"
@@ -225,7 +243,7 @@ export default function Home() {
 
       {/* Pricing Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 w-full">
-        <Pricing />
+        <Pricing onOpenDiscountModal={() => setIsDiscountModalOpen(true)} />
       </section>
 
       {/* FAQ */}
@@ -279,6 +297,12 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Instagram Story Discount Modal */}
+      <InstagramDiscountModal
+        isOpen={isDiscountModalOpen}
+        onClose={() => setIsDiscountModalOpen(false)}
+      />
     </div>
   );
 }
