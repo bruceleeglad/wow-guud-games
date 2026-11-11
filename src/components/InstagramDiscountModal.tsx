@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import InstagramIcon from './InstagramIcon';
+import TikTokIcon from './TikTokIcon';
 import {
   X,
   CheckCircle2,
@@ -12,6 +13,7 @@ import {
   ShieldCheck,
   Check,
   Flame,
+  Video,
 } from 'lucide-react';
 
 interface Props {
@@ -21,17 +23,18 @@ interface Props {
 }
 
 export default function InstagramDiscountModal({ isOpen, onClose, onApplyDiscount }: Props) {
+  const [platform, setPlatform] = useState<'instagram' | 'tiktok'>('instagram');
   const [handle, setHandle] = useState('');
+  const [tiktokUrl, setTiktokUrl] = useState('');
   const [verifying, setVerifying] = useState(false);
-  const [verifiedData, setVerifiedData] = useState<{ code: string; percent: number } | null>(null);
+  const [verifiedData, setVerifiedData] = useState<{ code: string; percent: number; platform: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Tjek om brugeren allerede har verificeret i denne session
     const savedCode = localStorage.getItem('wow_ig_discount_code');
     if (savedCode) {
-      setVerifiedData({ code: savedCode, percent: 25 });
+      setVerifiedData({ code: savedCode, percent: 25, platform: 'social' });
     }
   }, []);
 
@@ -39,36 +42,44 @@ export default function InstagramDiscountModal({ isOpen, onClose, onApplyDiscoun
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!handle.trim()) {
+    setError(null);
+
+    if (platform === 'instagram' && !handle.trim()) {
       setError('Indtast venligst dit Instagram brugernavn');
       return;
     }
+    if (platform === 'tiktok' && !tiktokUrl.trim()) {
+      setError('Indtast venligst linket til din TikTok video');
+      return;
+    }
 
-    setError(null);
     setVerifying(true);
 
     try {
-      const res = await fetch('/api/instagram/verify', {
+      const res = await fetch('/api/social-discount/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ handle }),
+        body: JSON.stringify({
+          platform,
+          handle,
+          tiktokUrl,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Kunne ikke verificere Instagram Story');
+        throw new Error(data.error || 'Kunne ikke verificere opslaget');
       }
 
-      // Simulér kort netværkstjek for lækker UX
       setTimeout(() => {
         setVerifying(false);
-        setVerifiedData({ code: data.discountCode, percent: data.discountPercent });
+        setVerifiedData({ code: data.discountCode, percent: data.discountPercent, platform });
         localStorage.setItem('wow_ig_discount_code', data.discountCode);
         if (onApplyDiscount) {
           onApplyDiscount(data.discountCode);
         }
-      }, 1200);
+      }, 1000);
     } catch (err: any) {
       setVerifying(false);
       setError(err.message);
@@ -100,70 +111,151 @@ export default function InstagramDiscountModal({ isOpen, onClose, onApplyDiscoun
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center shadow-lg shadow-rose-500/20 text-white">
-            <InstagramIcon className="w-6 h-6" />
+            <Sparkles className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-400">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Viral Story Rabat</span>
+              <Flame className="w-3.5 h-3.5" />
+              <span>Viral Social Rewards</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white">Få 25% Rabat på Alt</h2>
           </div>
         </div>
 
         <p className="text-sm text-neutral-400 mb-6 leading-relaxed">
-          Del en Story på Instagram hvor du tagger <strong className="text-white">@guudgames</strong>, og lås øjeblikkeligt op for 25% rabat på <em>FlipRadar Pro</em> eller <em>RaidBrain Guild</em>.
+          Del med dit netværk på <strong>Instagram Story</strong> eller <strong>TikTok</strong>, og lås øjeblikkeligt op for 25% rabat på alle abonnementer.
         </p>
 
         {!verifiedData ? (
           <div>
-            {/* Step instructions */}
-            <div className="space-y-3.5 mb-6">
-              <div className="flex items-start gap-3 bg-neutral-950/70 border border-neutral-800/80 rounded-2xl p-3.5">
-                <span className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                  1
-                </span>
-                <div className="text-xs">
-                  <p className="font-semibold text-neutral-200">Læg en Story op på Instagram</p>
-                  <p className="text-neutral-400 mt-0.5">
-                    Vis et Keep or Toss opslag eller FlipRadar guld-arbitrage, og tag <strong className="text-rose-400">@guudgames</strong>.
-                  </p>
-                </div>
-              </div>
+            {/* Platform Selector Tabs */}
+            <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-neutral-950 border border-neutral-800 mb-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setPlatform('instagram');
+                  setError(null);
+                }}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  platform === 'instagram'
+                    ? 'bg-gradient-to-r from-rose-500 to-purple-600 text-white shadow-md'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <InstagramIcon className="w-4 h-4" />
+                <span>Instagram Story</span>
+              </button>
 
-              <div className="flex items-start gap-3 bg-neutral-950/70 border border-neutral-800/80 rounded-2xl p-3.5">
-                <span className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                  2
-                </span>
-                <div className="text-xs">
-                  <p className="font-semibold text-neutral-200">Indtast dit brugernavn nedenfor</p>
-                  <p className="text-neutral-400 mt-0.5">
-                    Vores automatiske Story Webhook bekræfter delingen og udløser din rabatkode med det samme.
-                  </p>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPlatform('tiktok');
+                  setError(null);
+                }}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  platform === 'tiktok'
+                    ? 'bg-white text-black shadow-md'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <TikTokIcon className="w-4 h-4" />
+                <span>TikTok Video</span>
+              </button>
+            </div>
+
+            {/* Platform specific instructions */}
+            <div className="space-y-3 mb-6 text-xs">
+              {platform === 'instagram' ? (
+                <>
+                  <div className="flex items-start gap-3 bg-neutral-950/70 border border-neutral-800/80 rounded-2xl p-3.5">
+                    <span className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      1
+                    </span>
+                    <div>
+                      <p className="font-semibold text-neutral-200">Del en Instagram Story</p>
+                      <p className="text-neutral-400 mt-0.5">
+                        Vis et Keep or Toss opslag eller FlipRadar guld-snipe og tag <strong className="text-rose-400">@guudgames</strong>.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 bg-neutral-950/70 border border-neutral-800/80 rounded-2xl p-3.5">
+                    <span className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      2
+                    </span>
+                    <div>
+                      <p className="font-semibold text-neutral-200">Indtast dit brugernavn</p>
+                      <p className="text-neutral-400 mt-0.5">
+                        Vores Story Webhook bekræfter opslaget og låser rabatten op med det samme.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-start gap-3 bg-neutral-950/70 border border-neutral-800/80 rounded-2xl p-3.5">
+                    <span className="w-6 h-6 rounded-full bg-white/20 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      1
+                    </span>
+                    <div>
+                      <p className="font-semibold text-neutral-200">Læg en TikTok video op</p>
+                      <p className="text-neutral-400 mt-0.5">
+                        Vis dine AH flips, guld-profitter eller wipe-reaktioner med <strong className="text-white">@guudgames</strong> eller <strong className="text-white">#wowforever</strong> i teksten.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 bg-neutral-950/70 border border-neutral-800/80 rounded-2xl p-3.5">
+                    <span className="w-6 h-6 rounded-full bg-white/20 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      2
+                    </span>
+                    <div>
+                      <p className="font-semibold text-neutral-200">Indsæt videoens link</p>
+                      <p className="text-neutral-400 mt-0.5">
+                        Vores automatiske TikTok oEmbed scanner bekræfter videoen på under 1 sekund.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Input form */}
             <form onSubmit={handleVerify} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-neutral-400 mb-1.5">
-                  Dit Instagram Brugernavn
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 font-bold">
-                    @
-                  </span>
-                  <input
-                    type="text"
-                    value={handle.replace(/^@/, '')}
-                    onChange={(e) => setHandle(e.target.value)}
-                    placeholder="dit_instagram_handle"
-                    disabled={verifying}
-                    className="w-full bg-neutral-950 border border-neutral-700/80 rounded-xl pl-9 pr-4 py-3 text-white placeholder-neutral-600 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all text-sm font-medium"
-                  />
+              {platform === 'instagram' ? (
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-400 mb-1.5">
+                    Dit Instagram Brugernavn
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 font-bold">
+                      @
+                    </span>
+                    <input
+                      type="text"
+                      value={handle.replace(/^@/, '')}
+                      onChange={(e) => setHandle(e.target.value)}
+                      placeholder="dit_instagram_handle"
+                      disabled={verifying}
+                      className="w-full bg-neutral-950 border border-neutral-700/80 rounded-xl pl-9 pr-4 py-3 text-white placeholder-neutral-600 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all text-sm font-medium"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-400 mb-1.5">
+                    Link til din TikTok Video
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={tiktokUrl}
+                      onChange={(e) => setTiktokUrl(e.target.value)}
+                      placeholder="https://www.tiktok.com/@bruger/video/..."
+                      disabled={verifying}
+                      className="w-full bg-neutral-950 border border-neutral-700/80 rounded-xl px-4 py-3 text-white placeholder-neutral-600 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all text-sm font-medium font-mono"
+                    />
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5">
@@ -174,16 +266,20 @@ export default function InstagramDiscountModal({ isOpen, onClose, onApplyDiscoun
               <button
                 type="submit"
                 disabled={verifying}
-                className="w-full py-3.5 px-6 rounded-xl font-bold text-sm bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-400 hover:to-purple-500 text-white transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25 disabled:opacity-50"
+                className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 ${
+                  platform === 'instagram'
+                    ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-400 hover:to-purple-500 text-white shadow-rose-500/25'
+                    : 'bg-white hover:bg-neutral-200 text-neutral-950 shadow-white/20'
+                }`}
               >
                 {verifying ? (
                   <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Tjekker Instagram Story...</span>
+                    <span className="w-4 h-4 border-2 border-neutral-400 border-t-white rounded-full animate-spin" />
+                    <span>Tjekker opslag via API...</span>
                   </>
                 ) : (
                   <>
-                    <span>Bekræft Story & Få 25% Rabat</span>
+                    <span>Verificer & Lås 25% Rabat Op</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -196,9 +292,9 @@ export default function InstagramDiscountModal({ isOpen, onClose, onApplyDiscoun
               <CheckCircle2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-lg font-bold text-white mb-1">Story Bekræftet! 🎉</h3>
+            <h3 className="text-lg font-bold text-white mb-1">Opslag Bekræftet! 🎉</h3>
             <p className="text-xs text-neutral-300 mb-5">
-              Tak fordi du delte med dit netværk! Din personlige 25% rabatkode er nu aktiv:
+              Tak fordi du delte! Din personlige 25% rabatkode er nu låst op og aktiv:
             </p>
 
             <div className="flex items-center justify-between gap-3 bg-neutral-950 border border-emerald-500/40 rounded-xl p-3 mb-4">
@@ -235,7 +331,7 @@ export default function InstagramDiscountModal({ isOpen, onClose, onApplyDiscoun
         <div className="mt-5 pt-4 border-t border-neutral-800/80 flex items-center justify-between text-[11px] text-neutral-500">
           <span className="flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Officielt Meta API & Stripe Valideret</span>
+            <span>Meta & TikTok API Valideret</span>
           </span>
           <span>Gyldig i 48 timer</span>
         </div>
