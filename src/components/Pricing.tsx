@@ -10,6 +10,7 @@ interface Props {
 
 export default function Pricing({ onOpenDiscountModal }: Props) {
   const [activeCode, setActiveCode] = useState<string | null>(null);
+  const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     const code = localStorage.getItem('wow_ig_discount_code');
@@ -17,6 +18,31 @@ export default function Pricing({ onOpenDiscountModal }: Props) {
       setActiveCode(code);
     }
   }, []);
+
+  const handleCheckout = async (planId: string) => {
+    setLoadingPlanId(planId);
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId,
+          discountCode: activeCode,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || 'Kunne ikke oprette Stripe Checkout session');
+      }
+
+      window.location.href = data.url;
+    } catch (err: any) {
+      alert(`Fejl ved opstart af betaling: ${err.message}`);
+      setLoadingPlanId(null);
+    }
+  };
 
   const plans = [
     {
@@ -106,7 +132,7 @@ export default function Pricing({ onOpenDiscountModal }: Props) {
               </div>
               <div>
                 <span className="text-xs uppercase font-extrabold tracking-wider text-emerald-400">
-                  Instagram Story Rabat Aktiv
+                  Social Media Rabat Aktiv
                 </span>
                 <p className="text-sm font-semibold text-white">
                   25% rabat er fratrukket alle priser nedenfor med koden <code className="text-amber-400 font-mono font-bold">{activeCode}</code>
@@ -128,7 +154,7 @@ export default function Pricing({ onOpenDiscountModal }: Props) {
                   Viral Rabat Kampagne
                 </span>
                 <p className="text-sm font-semibold text-white">
-                  Del en Story og tag <strong className="text-white">@guudgames</strong> – Få 25% rabat med det samme!
+                  Del på Instagram Story eller TikTok – Få 25% rabat med det samme!
                 </p>
               </div>
             </div>
@@ -146,6 +172,7 @@ export default function Pricing({ onOpenDiscountModal }: Props) {
         {plans.map((plan) => {
           const isAmber = plan.popular;
           const displayPrice = activeCode ? plan.discountedPrice : plan.originalPrice;
+          const isLoading = loadingPlanId === plan.id;
 
           return (
             <div
@@ -202,21 +229,25 @@ export default function Pricing({ onOpenDiscountModal }: Props) {
 
               <div>
                 <button
-                  onClick={() =>
-                    alert(
-                      `Stripe Checkout forbinder for ${plan.name} (${displayPrice}${plan.period}). ${
-                        activeCode ? 'Kupon ' + activeCode + ' anvendes automatisk.' : ''
-                      }`
-                    )
-                  }
-                  className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg ${
+                  onClick={() => handleCheckout(plan.id)}
+                  disabled={isLoading}
+                  className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-lg disabled:opacity-60 ${
                     isAmber
                       ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-neutral-950 shadow-amber-500/25'
                       : 'bg-neutral-800 hover:bg-neutral-700 text-white'
                   }`}
                 >
-                  {isAmber && <Crown className="w-4 h-4" />}
-                  <span>{plan.cta}</span>
+                  {isLoading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <span>Opretter sikker Stripe forbindelse...</span>
+                    </>
+                  ) : (
+                    <>
+                      {isAmber && <Crown className="w-4 h-4" />}
+                      <span>{plan.cta}</span>
+                    </>
+                  )}
                 </button>
                 <p className="text-center text-[11px] text-neutral-500 mt-2.5">
                   Sikker betaling via Stripe • Dansk moms inkluderet
